@@ -1,6 +1,0 @@
-1. wget http://download.qt.io/official_releases/qt/5.0/5.0.2/qt-linux-opensource-5.0.2-x86-offline.run
-2. chmod +x qt-linux-opensource-5.0.2-x86-offline.run 
-3. ./qt-linux-opensource-5.0.2-x86-offline.run
-4. ll /usr/lib/x86_64-linux-gnu/qt4/bin/qmake
-5. sudo apt-get install qt-sdk
-6. sudo apt-get install python3-pyqt5
