@@ -1,6 +1,6 @@
 Markers = new Mongo.Collection('markers');
 var EVENT_TYPE_COP_DETECTED = 0,
-    EVENT_TYPE_HOLE = 1,
+    EVENT_TYPE_HOLE_DETECTED = 1,
     EVENT_TYPE_DRIVER_CURRENT_POSITION = 2,
     IMAGES_FOLDER_PATH = "images/",
     currentLocationPosition,
@@ -10,10 +10,12 @@ var EVENT_TYPE_COP_DETECTED = 0,
     googleMapInstance;
 
 function sendNotification(latitude, longitude, notificationType) {
-    Markers.insert({ lat: latitude, lng: longitude, type: notificationType });
+    console.log('sendNotification', latitude, longitude);
+    Markers.insert({ lat: latitude, lng: longitude, type: notificationType});
 }
 
 function createMarker(latitude, longitude, type) {
+    console.log('createMarker', latitude, longitude, type);
     var markerIcon = getMarkerIconByType(type);
     var marker = new google.maps.Marker({
         draggable: true,
@@ -29,16 +31,13 @@ function createMarker(latitude, longitude, type) {
 function getMarkerIconByType(notificationType) {
     switch (notificationType) {
         case EVENT_TYPE_COP_DETECTED:
-            // return IMAGES_FOLDER_PATH + "car_icon.png";
-            return "http://www.google.bg/url?sa=i&source=imgres&cd=&ved=0CAUQjBxqFQoTCKONx7HSpsgCFYgMLAodlj0JIQ&url=http%3A%2F%2Fvignette1.wikia.nocookie.net%2Fclubpenguin%2Fimages%2F8%2F83%2FCop_Cap_from_a_Player_Card.PNG%2Frevision%2Flatest%3Fcb%3D20121221140708&psig=AFQjCNE_oJ5r-JtDKhr7t5G2OzvSFvJFHQ&ust=1443973441389613";
-        case EVENT_TYPE_HOLE:
-            return "https://0.s3.envato.com/files/79678163/object-road-cone.jpg";
-            // return IMAGES_FOLDER_PATH + "car_icon.png";
-        case EVENT_TYPE_DRIVER_CURRENT_POSITION:
-            return "https://cdn2.iconfinder.com/data/icons/auto-cars/154/auto-car-beetle-small-128.png";
-            // return IMAGES_FOLDER_PATH + "car_icon.png";
+             return "http://vignette1.wikia.nocookie.net/clubpenguin/images/8/83/Cop_Cap_from_a_Player_Card.PNG/revision/latest?cb=20121221140708";
+        case EVENT_TYPE_HOLE_DETECTED:
+            return IMAGES_FOLDER_PATH + "object-road-cone.jpg";
+         case EVENT_TYPE_DRIVER_CURRENT_POSITION:
+            return IMAGES_FOLDER_PATH + "car_icon.jpg"
         default:
-            return IMAGES_FOLDER_PATH + "car_icon.png";
+            return IMAGES_FOLDER_PATH + "car_icon.jpg";
     }
 }
 if (Meteor.isClient) {
@@ -52,6 +51,8 @@ if (Meteor.isClient) {
       });
         function showPosition(data) {
             currentLocationPosition = data.coords;
+            latestMapLongitude = data.coords.longitude;
+            latestMapLatitude = data.coords.latitude;
             console.log("current position: ", data, Template.map);
             map.instance.setCenter(new google.maps.LatLng(currentLocationPosition.latitude, currentLocationPosition.longitude));
             updateCurrentPositionMarker();
@@ -104,8 +105,8 @@ if (Meteor.isClient) {
     mapOptions: function() {
       if (GoogleMaps.loaded()) {
         return {
-          center: new google.maps.LatLng(-37.8136, 144.9631),
-          zoom: 10
+          center: new google.maps.LatLng(42.680313,23.325762),
+          zoom: 20
         };
       }
     }
@@ -113,6 +114,7 @@ if (Meteor.isClient) {
 
   Template.map.events = {
     'click #report-cop-btn': function () {
+        console.log("detected click on the cop button");
         sendNotification(latestMapLatitude, latestMapLongitude, EVENT_TYPE_COP_DETECTED);
     }
   };
