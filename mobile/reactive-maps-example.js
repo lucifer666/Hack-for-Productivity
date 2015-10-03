@@ -31,13 +31,13 @@ function createMarker(latitude, longitude, type) {
 function getMarkerIconByType(notificationType) {
     switch (notificationType) {
         case EVENT_TYPE_COP_DETECTED:
-             return "http://vignette1.wikia.nocookie.net/clubpenguin/images/8/83/Cop_Cap_from_a_Player_Card.PNG/revision/latest?cb=20121221140708";
+             return "https://photos-4.dropbox.com/t/2/AAAeQHHWkd_tfWCu8iBksAlyH6mMZQsCD2ruqBQeXRjRzA/12/386211175/png/32x32/1/_/1/2/rsz_cop_cap_from_a_player_card.png/EKPX04kDGKQHIAIoAg/Gmm_3bErGN-6vW-6E2tI76jSbezyBkSh0jo13_imhsw?size=1024x768&size_mode=2";
         case EVENT_TYPE_HOLE_DETECTED:
-            return IMAGES_FOLDER_PATH + "object-road-cone.jpg";
+            return "https://scontent.xx.fbcdn.net/hphotos-xla1/v/t34.0-12/12071491_884081898351938_1029038919_n.jpg?oh=52c4a31f34dc16877b5c0d06a0841a21&oe=5611BED9";
          case EVENT_TYPE_DRIVER_CURRENT_POSITION:
-            return IMAGES_FOLDER_PATH + "car_icon.jpg"
+            return "https://scontent.xx.fbcdn.net/hphotos-xpt1/v/t34.0-12/12081547_884081931685268_1370675732_n.jpg?oh=b268cb3de7aac30a4093552931319f4c&oe=5611C9CC"
         default:
-            return IMAGES_FOLDER_PATH + "car_icon.jpg";
+            return "https://scontent.xx.fbcdn.net/hphotos-xpt1/v/t34.0-12/12081547_884081931685268_1370675732_n.jpg?oh=b268cb3de7aac30a4093552931319f4c&oe=5611C9CC"
     }
 }
 if (Meteor.isClient) {
@@ -116,6 +116,10 @@ if (Meteor.isClient) {
     'click #report-cop-btn': function () {
         console.log("detected click on the cop button");
         sendNotification(latestMapLatitude, latestMapLongitude, EVENT_TYPE_COP_DETECTED);
+    },
+    'click #report-big-hole-btn': function () {
+        console.log("detected click on the cop button");
+        sendNotification(latestMapLatitude, latestMapLongitude, EVENT_TYPE_HOLE_DETECTED);
     }
   };
 }
