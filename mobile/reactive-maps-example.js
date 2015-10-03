@@ -2,6 +2,7 @@ Markers = new Mongo.Collection('markers');
 var EVENT_TYPE_COP_DETECTED = 0,
     EVENT_TYPE_HOLE_DETECTED = 1,
     EVENT_TYPE_DRIVER_CURRENT_POSITION = 2,
+    EVENT_TYPE_TRAFFIC_JAM = 3,
     IMAGES_FOLDER_PATH = "images/",
     currentLocationPosition,
     currentPositionMarker,
@@ -31,11 +32,11 @@ function createMarker(latitude, longitude, type) {
 function getMarkerIconByType(notificationType) {
     switch (notificationType) {
         case EVENT_TYPE_COP_DETECTED:
-             return "https://photos-4.dropbox.com/t/2/AAAeQHHWkd_tfWCu8iBksAlyH6mMZQsCD2ruqBQeXRjRzA/12/386211175/png/32x32/1/_/1/2/rsz_cop_cap_from_a_player_card.png/EKPX04kDGKQHIAIoAg/Gmm_3bErGN-6vW-6E2tI76jSbezyBkSh0jo13_imhsw?size=1024x768&size_mode=2";
+             return "https://scontent.xx.fbcdn.net/hphotos-xat1/v/t34.0-12/12064122_1682719258626852_2060662579_n.jpg?oh=290c3df2f4e5456028dcc4bdade4b023&oe=5612C23A";
         case EVENT_TYPE_HOLE_DETECTED:
             return "https://scontent.xx.fbcdn.net/hphotos-xla1/v/t34.0-12/12071491_884081898351938_1029038919_n.jpg?oh=52c4a31f34dc16877b5c0d06a0841a21&oe=5611BED9";
-         case EVENT_TYPE_DRIVER_CURRENT_POSITION:
-            return "https://scontent.xx.fbcdn.net/hphotos-xpt1/v/t34.0-12/12081547_884081931685268_1370675732_n.jpg?oh=b268cb3de7aac30a4093552931319f4c&oe=5611C9CC"
+        case EVENT_TYPE_TRAFFIC_JAM:
+            return "https://scontent.xx.fbcdn.net/hphotos-xpa1/v/t34.0-12/12077492_1682719235293521_201055047_n.jpg?oh=1b9081a7c7c2e14796e70f3ed90db549&oe=5612E0BE"
         default:
             return "https://scontent.xx.fbcdn.net/hphotos-xpt1/v/t34.0-12/12081547_884081931685268_1370675732_n.jpg?oh=b268cb3de7aac30a4093552931319f4c&oe=5611C9CC"
     }
@@ -100,6 +101,25 @@ if (Meteor.isClient) {
   Meteor.startup(function() {
     GoogleMaps.load();
   });
+//
+  if (Meteor.isServer) {
+
+  Meteor.startup(function() {
+
+    return Meteor.methods({
+
+      removeAllPosts: function() {
+
+        return Posts.remove({});
+
+      }
+
+    });
+
+  });
+
+}
+//
 
   Template.map.helpers({
     mapOptions: function() {
@@ -118,8 +138,12 @@ if (Meteor.isClient) {
         sendNotification(latestMapLatitude, latestMapLongitude, EVENT_TYPE_COP_DETECTED);
     },
     'click #report-big-hole-btn': function () {
-        console.log("detected click on the cop button");
+        console.log("detected click on the hole button");
         sendNotification(latestMapLatitude, latestMapLongitude, EVENT_TYPE_HOLE_DETECTED);
-    }
+    },
+    'click #report-traffic-jam-btn': function () {
+        console.log("detected click on the traffic jam button");
+        sendNotification(latestMapLatitude, latestMapLongitude, EVENT_TYPE_TRAFFIC_JAM);
+    },
   };
 }
