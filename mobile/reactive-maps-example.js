@@ -1,4 +1,4 @@
-Markers = new Mongo.Collection('markers');
+Markers = new Mongo.Collection('notifications4');
 var EVENT_TYPE_COP_DETECTED = 0,
     EVENT_TYPE_HOLE_DETECTED = 1,
     EVENT_TYPE_DRIVER_CURRENT_POSITION = 2,
@@ -9,30 +9,37 @@ var EVENT_TYPE_COP_DETECTED = 0,
     latestMapLatitude,
     latestMapLongitude,
     googleMapInstance,
-    visibleMarkers = [],
+    markers = [],
     radius = 1; //in kilomethers
 
 function sendNotification(latitude, longitude, notificationType) {
+    var markerId = new Date().getTime();
     console.log('sendNotification', latitude, longitude);
-    Markers.insert({ lat: latitude, lng: longitude, type: notificationType});
+    Markers.insert({ lat: latitude, lng: longitude, type: notificationType, markerId: markerId});
 }
 
-function createMarker(latitude, longitude, type) {
-    console.log('createMarker', latitude, longitude, type);
+function createMarker(latitude, longitude, type, markerId) {
+    var isMarkerIdSpecified = typeof markerId !== "undefined";
     var markerIcon = getMarkerIconByType(type);
+    markerId = markerId || new Date().getTime();
     var marker = new google.maps.Marker({
-        draggable: true,
+        draggable: false,
         icon: markerIcon,
         animation: google.maps.Animation.DROP,
         position: new google.maps.LatLng(latitude, longitude),
         map: googleMapInstance,
-        id: new Date().toString()
+        markerId: markerId
     });
+   if (isMarkerIdSpecified) {
+        markers.push(marker);
+    }
+    console.log('createMarker', latitude, longitude, type);
+
     return marker;
 }
 
 function isMarkerLocal(currentMarkerLat, currentMarkerLng){
-    return getDistance(currentMarkerLat, currentMarkerLng) <= radius;
+    return getDistance(currentMarkerLat, currentMarkerLng) <= radius
 }
 
 function getDistance(markerLat, markerLng){  // generally used geo measurement function
@@ -44,22 +51,44 @@ function getDistance(markerLat, markerLng){  // generally used geo measurement f
     Math.sin(dLon/2) * Math.sin(dLon/2);
     var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     var d = R * c;
+
+    console.log('distance: ', d);
     return d; // kilomethers
+}
+
+function getGoogleMapMarkerById(markerId) {
+   console.log("dqdo" , markers);
+   var markerWithId;
+   markers.forEach(function (currentMarker) {
+
+     console.log("baba" , currentMarker.markerId);
+     if (currentMarker.markerId === markerId) {
+        console.log("matched");
+        markerWithId = currentMarker;
+     }
+   });
+   return markerWithId;
 }
 
 function updateLocalMarkers(){
     console.log('updateLocalMarkers');
-    var markerCursor = Markers.find();
-    while(markerCursor.hasNext){
-        marker = markerCursor.next()
-        currentMarkerLat = marker.lat;
-        currentMarkerLng = marker.lng;
-        if(!isMarkerLocal(currentMarkerLat, currentMarkerLng)){
-            currentMarker.setMap(null);
-        }else{            
-            currentMarker.setMap(googleMapInstance);
+    Markers.find().forEach(function(currentMarker){
+        var currentMarkerLat = currentMarker.lat;
+        var currentMarkerLng = currentMarker.lng;
+        var markerId = currentMarker.markerId;
+        console.log('check if marker is local', currentMarker);
+        var currentGoogleMapsMarker = getGoogleMapMarkerById(markerId);
+        if(typeof currentGoogleMapsMarker !== "undefined"){
+           if(!isMarkerLocal(currentMarkerLat, currentMarkerLng)){
+               console.log("pone edno", currentGoogleMapsMarker);
+               currentGoogleMapsMarker.setMap(null);
+               currentGoogleMapsMarker.setVisible(false);
+           }else{            
+               currentGoogleMapsMarker.setMap(googleMapInstance);
+               currentGoogleMapsMarker.setVisible(true);
+           }
         }
-    }
+    });
 }
 
 function getMarkerIconByType(notificationType) {
@@ -77,12 +106,18 @@ function getMarkerIconByType(notificationType) {
 if (Meteor.isClient) {
   Template.map.onCreated(function() {
     GoogleMaps.ready('map', function(map) {
-      googleMapInstance = map.instance;
-      google.maps.event.addListener(map.instance, 'click', function(event) {
-        latestMapLatitude = event.latLng.lat();
-        latestMapLongitude = event.latLng.lng();
-        Markers.insert({ lat: latestMapLatitude, lng: latestMapLongitude });
+      Markers.find().forEach(function(currentMarker){
+          var marker = createMarker(currentMarker.lat, currentMarker.lng, currentMarker.type, currentMarker.markerId);
       });
+
+      // zoomControl: false
+      googleMapInstance = map.instance;
+      //google.maps.event.addListener(map.instance, 'click', function(event) {
+        //latestMapLatitude = event.latLng.lat();
+        //latestMapLongitude = event.latLng.lng();
+        //var currentPositionMarkerId = new Date().getTime();
+        //Markers.insert({ lat: latestMapLatitude, lng: latestMapLongitude, currentPositionMarkerId});
+      //});
         function showPosition(data) {
             currentLocationPosition = data.coords;
             latestMapLongitude = data.coords.longitude;
@@ -93,11 +128,12 @@ if (Meteor.isClient) {
         }
         function updateCurrentPositionMarker() {
             if (!currentPositionMarker) {
+                var currentPositionMarkerId = new Date().getTime();
                 currentPositionMarker = createMarker(currentLocationPosition.latitude, currentLocationPosition.longitude, EVENT_TYPE_DRIVER_CURRENT_POSITION);
             } else {
                 currentPositionMarker.setPosition({ lat: currentLocationPosition.latitude, lng: currentLocationPosition.longitude });
             }
-            // updateLocalMarkers();
+            updateLocalMarkers();
         }
         function checkCurrentPosition() {
             if (navigator.geolocation) {
@@ -105,14 +141,14 @@ if (Meteor.isClient) {
             }
         }
         checkCurrentPosition();
-        setInterval(checkCurrentPosition, 15000);
+        setInterval(checkCurrentPosition, 8000);
 
       var markers = {};
 
       Markers.find().observe({
         added: function (document) {
           console.log("Notification data:", document);
-          var marker = createMarker(document.latLng.lat(), document.latLng.lng(), document.type);
+          var marker = createMarker(document.lat, document.lng, document.type);
 
           google.maps.event.addListener(marker, 'dragend', function(event) {
             Markers.update(marker.id, { $set: { lat: event.latLng.lat(), lng: event.latLng.lng() }});
@@ -160,7 +196,7 @@ if (Meteor.isClient) {
       if (GoogleMaps.loaded()) {
         return {
           center: new google.maps.LatLng(42.680313,23.325762),
-          zoom: 20
+          zoom: 10
         };
       }
     }
