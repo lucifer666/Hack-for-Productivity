@@ -8,7 +8,9 @@ var EVENT_TYPE_COP_DETECTED = 0,
     currentPositionMarker,
     latestMapLatitude,
     latestMapLongitude,
-    googleMapInstance;
+    googleMapInstance,
+    visibleMarkers = [],
+    radius = 1; //in kilomethers
 
 function sendNotification(latitude, longitude, notificationType) {
     console.log('sendNotification', latitude, longitude);
@@ -27,6 +29,37 @@ function createMarker(latitude, longitude, type) {
         id: new Date().toString()
     });
     return marker;
+}
+
+function isMarkerLocal(currentMarkerLat, currentMarkerLng){
+    return getDistance(currentMarkerLat, currentMarkerLng) <= radius;
+}
+
+function getDistance(markerLat, markerLng){  // generally used geo measurement function
+    var R = 6378.137; // Radius of earth in KM
+    var dLat = (markerLat - currentLocationPosition.latitude) * Math.PI / 180;
+    var dLon = (markerLng - currentLocationPosition.longitude) * Math.PI / 180;
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(currentLocationPosition.latitude * Math.PI / 180) * Math.cos(markerLat * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    var d = R * c;
+    return d; // kilomethers
+}
+
+function updateLocalMarkers(){
+    console.log('updateLocalMarkers');
+    var markerCursor = Markers.find();
+    while(markerCursor.hasNext){
+        marker = markerCursor.next()
+        currentMarkerLat = marker.lat;
+        currentMarkerLng = marker.lng;
+        if(!isMarkerLocal(currentMarkerLat, currentMarkerLng)){
+            currentMarker.setMap(null);
+        }else{            
+            currentMarker.setMap(googleMapInstance);
+        }
+    }
 }
 
 function getMarkerIconByType(notificationType) {
@@ -64,6 +97,7 @@ if (Meteor.isClient) {
             } else {
                 currentPositionMarker.setPosition({ lat: currentLocationPosition.latitude, lng: currentLocationPosition.longitude });
             }
+            // updateLocalMarkers();
         }
         function checkCurrentPosition() {
             if (navigator.geolocation) {
@@ -78,7 +112,7 @@ if (Meteor.isClient) {
       Markers.find().observe({
         added: function (document) {
           console.log("Notification data:", document);
-          var marker = createMarker(document.lat, document.lng, document.type);
+          var marker = createMarker(document.latLng.lat(), document.latLng.lng(), document.type);
 
           google.maps.event.addListener(marker, 'dragend', function(event) {
             Markers.update(marker.id, { $set: { lat: event.latLng.lat(), lng: event.latLng.lng() }});
